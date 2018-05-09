@@ -1,17 +1,12 @@
-package testapp;
+package correlation;
 
-import static testapp.CorrelationIdProducer.PARENT_SPAN_ID;
-import static testapp.CorrelationIdProducer.SPAN_ID;
-import static testapp.CorrelationIdProducer.TRACE_ID;
+import static correlation.CorrelationHeaders.PARENT_SPAN_ID;
+import static correlation.CorrelationHeaders.SPAN_ID;
+import static correlation.CorrelationHeaders.TRACE_ID;
 
 import java.io.IOException;
 import java.util.UUID;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -21,9 +16,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.Response;
 
 @WebFilter(urlPatterns="/*")
 public class CorrelationFilter implements Filter {
@@ -69,52 +61,24 @@ public class CorrelationFilter implements Filter {
     chain.doFilter(request, response);
     long end = System.currentTimeMillis();
 
+    // TODO how to indicate errors to zipkin in v2 ???
     if (response.getStatus() >= 200 && response.getStatus() <300) {
       // ok
     } else {
       // error! should tell zipkin ...
     }
     
-    JsonArrayBuilder spans = Json.createArrayBuilder();
-    JsonObjectBuilder spanJson = Json.createObjectBuilder()
-      .add("traceId", traceId.replaceAll("-", "").substring(0, 16))
-      ;
-    if (!"".equals(parentSpanId)) {
-      spanJson.add("parentId", parentSpanId.replaceAll("-", "").substring(0, 16));
-    }
-    spanJson
-      .add("id", newSpanId.replaceAll("-", "").substring(0, 16))
-      .add("kind", "SERVER")
-      .add("timestamp", 1000 * start)
-      .add("duration", 1000 * (end-start))
-      ;
     
-    JsonObject localEndpoint = Json.createObjectBuilder()
-        .add("serviceName", request.getRequestURI())
-        .add("ipv4", request.getLocalAddr())
-        .add("port", request.getLocalPort())
-        .build()
-    ;
-    spanJson.add("localEndpoint", localEndpoint);
-  
-    spans.add(spanJson.build());
-    JsonArray build = spans.build();
-
-    System.err.println("Spans : ");
-    System.err.println("-------");
-    System.err.println(build.toString());
-    System.err.println("-------");
-    Response zipkinResponse = ClientBuilder.newClient().target("http://192.168.99.2:9411/")
-                .path("/api/v2/spans")
-                .request().post(Entity.json(build));
-    
-    if (zipkinResponse.getStatus() >= 200 && zipkinResponse.getStatus() < 300) {
-      System.err.println("Zipkin OK !");
-    } else {
-      System.err.println("Zipkin KO : " + zipkinResponse.getStatus());
-      System.err.println(zipkinResponse.readEntity(String.class));
-    }
-    
+    SpanInfo.server()
+      .withTraceId(traceId)
+      .withParentSpanId(parentSpanId)
+      .withSpanId(newSpanId)
+      .startAt(start)
+      .withDuration(end-start)
+      .withServiceName(request.getRequestURI())
+      .withIpv4(request.getLocalAddr())
+      .withPort(request.getLocalPort())
+      .sendTo("http://192.168.99.2:9411/");
   }
 
 }

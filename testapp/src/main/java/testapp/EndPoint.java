@@ -11,10 +11,14 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
+import correlation.CorrelationClientFilter;
+
 @Path("/")
 @Stateless
 public class EndPoint {
   
+  private static final String zipkinURI = "http://192.168.99.2:9411/";
+
   @GET
   public String hello(@Context HttpServletRequest request) {
     try {
@@ -22,12 +26,11 @@ public class EndPoint {
     } catch (InterruptedException e) {
     }
     
-    String result = ClientBuilder.newClient().target("http://localhost:8080/")
+    String result = ClientBuilder.newClient()
+        .register(new CorrelationClientFilter(zipkinURI, request))
+        .target("http://localhost:8080/")
         .path("test-app/second")
         .request()
-        .header(CorrelationIdProducer.TRACE_ID, (String)request.getAttribute(CorrelationIdProducer.TRACE_ID))
-        .header(CorrelationIdProducer.PARENT_SPAN_ID, (String)request.getAttribute(CorrelationIdProducer.PARENT_SPAN_ID))
-        .header(CorrelationIdProducer.SPAN_ID, (String)request.getAttribute(CorrelationIdProducer.SPAN_ID))
         .get(String.class);
     return "result for hello : " + result;
   }
@@ -40,10 +43,6 @@ public class EndPoint {
     } catch (InterruptedException e) {
     }
     
-    for (String header : headers.getRequestHeaders().keySet()) {
-      List<String> value = headers.getRequestHeader(header);
-      System.out.println("header : " + header + " -> "+ value);
-    }
     return "Hello from second call !";
   }
 }
