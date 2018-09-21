@@ -78,7 +78,7 @@ public class CorrelationFilter implements Filter {
       .withServiceName(request.getRequestURI())
       .withIpv4(request.getLocalAddr())
       .withPort(request.getLocalPort())
-      .sendTo("http://192.168.99.2:9411/");
+      .sendTo(Configuration.zipkinURi());
   }
 
 }

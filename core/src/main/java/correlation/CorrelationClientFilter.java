@@ -15,15 +15,10 @@ import javax.ws.rs.client.ClientResponseFilter;
 public class CorrelationClientFilter implements ClientRequestFilter, ClientResponseFilter{
 
   private final static ConcurrentHashMap<ClientRequestContext, Long> concurrentRequests = new ConcurrentHashMap<>();
-  private String zipkinUri;
   
-  @Inject  HttpServletRequest httpServletRequest;
+  @Inject HttpServletRequest httpServletRequest;
+  
   public CorrelationClientFilter() {
-    this.zipkinUri = "http://192.168.99.2:9411/";
-  }
-  public CorrelationClientFilter(String zipkinUri, HttpServletRequest httpServletRequest) {
-    this.zipkinUri = zipkinUri;
-    this.httpServletRequest = httpServletRequest;
   }
 
   @Override
@@ -62,7 +57,7 @@ public class CorrelationClientFilter implements ClientRequestFilter, ClientRespo
       .withIpv4(requestContext.getUri().getHost())
       .withPort(requestContext.getUri().getPort())
       .withServiceName(requestContext.getUri().getPath())
-      .sendTo(zipkinUri);
+      .sendTo(Configuration.zipkinURi());
   }
 
 }
