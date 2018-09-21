@@ -3,18 +3,24 @@ package correlation;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientRequestFilter;
 import javax.ws.rs.client.ClientResponseContext;
 import javax.ws.rs.client.ClientResponseFilter;
 
+@RequestScoped
 public class CorrelationClientFilter implements ClientRequestFilter, ClientResponseFilter{
 
   private final static ConcurrentHashMap<ClientRequestContext, Long> concurrentRequests = new ConcurrentHashMap<>();
   private String zipkinUri;
-  private HttpServletRequest httpServletRequest;
   
+  @Inject  HttpServletRequest httpServletRequest;
+  public CorrelationClientFilter() {
+    this.zipkinUri = "http://192.168.99.2:9411/";
+  }
   public CorrelationClientFilter(String zipkinUri, HttpServletRequest httpServletRequest) {
     this.zipkinUri = zipkinUri;
     this.httpServletRequest = httpServletRequest;

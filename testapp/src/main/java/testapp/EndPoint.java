@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import javax.ejb.Stateless;
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -19,17 +20,20 @@ public class EndPoint {
   
   private static final String zipkinURI = "http://192.168.99.2:9411/";
 
+  
   @GET
-  public String hello(@Context HttpServletRequest request) {
+  // @CorrelationInfo(tags= { new Tag("func", "hello"))
+  @Inject
+  public String hello( CorrelationClientFilter filter) {
     try {
       Thread.sleep(new Random().nextInt(400));
     } catch (InterruptedException e) {
     }
     
     String result = ClientBuilder.newClient()
-        .register(new CorrelationClientFilter(zipkinURI, request))
+        .register(filter)
         .target("http://localhost:8080/")
-        .path("test-app/second")
+        .path("jmetrics-app/second")
         .request()
         .get(String.class);
     return "result for hello : " + result;

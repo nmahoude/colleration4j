@@ -65,7 +65,7 @@ public class CorrelationFilter implements Filter {
     if (response.getStatus() >= 200 && response.getStatus() <300) {
       // ok
     } else {
-      // error! should tell zipkin ...
+      // TODO error! should tell zipkin ...
     }
     
     
